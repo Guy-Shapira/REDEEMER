@@ -6,33 +6,33 @@ import pathlib
 import random
 import sys
 import pandas as pd
-from CEP import CEP
-from evaluation.EvaluationMechanismFactory import TreeBasedEvaluationMechanismParameters
-from stream.Stream import OutputStream
-from stream.FileStream import FileInputStream, FileOutputStream
-from misc.Utils import generate_matches
-from plan.TreePlanBuilderFactory import TreePlanBuilderParameters
-from plan.TreeCostModels import TreeCostModels
-from plan.TreePlanBuilderTypes import TreePlanBuilderTypes
+from OPEN_CEP.CEP import CEP
+from OPEN_CEP.evaluation.EvaluationMechanismFactory import TreeBasedEvaluationMechanismParameters
+from OPEN_CEP.stream.Stream import OutputStream
+from OPEN_CEP.stream.FileStream import FileInputStream, FileOutputStream
+from OPEN_CEP.misc.Utils import generate_matches
+from OPEN_CEP.plan.TreePlanBuilderFactory import TreePlanBuilderParameters
+from OPEN_CEP.plan.TreeCostModels import TreeCostModels
+from OPEN_CEP.plan.TreePlanBuilderTypes import TreePlanBuilderTypes
 
 
-# from plugin.Football.Football_processed import DataFormatter
-# from plugin.StarPilot.StarPilot_processed import DataFormatter
-from plugin.GPU.GPU_processed import DataFormatter
-from tree.PatternMatchStorage import TreeStorageParameters
+# from OPEN_CEP.plugin.Football.Football_processed import DataFormatter
+# from OPEN_CEP.plugin.StarPilot.StarPilot_processed import DataFormatter
+from OPEN_CEP.plugin.GPU.GPU_processed import DataFormatter
+from OPEN_CEP.tree.PatternMatchStorage import TreeStorageParameters
 
 
-from condition.Condition import Variable, TrueCondition, BinaryCondition
-from condition.CompositeCondition import AndCondition, OrCondition
-from condition.BaseRelationCondition import GreaterThanCondition, SmallerThanCondition, EqCondition, NotEqCondition, GreaterThanEqCondition, SmallerThanEqCondition
-from base.PatternStructure import SeqOperator, PrimitiveEventStructure, NegationOperator
-from base.Pattern import Pattern
+from OPEN_CEP.condition.Condition import Variable, TrueCondition, BinaryCondition
+from OPEN_CEP.condition.CompositeCondition import AndCondition, OrCondition
+from OPEN_CEP.condition.BaseRelationCondition import GreaterThanCondition, SmallerThanCondition, EqCondition, NotEqCondition, GreaterThanEqCondition, SmallerThanEqCondition
+from OPEN_CEP.base.PatternStructure import SeqOperator, PrimitiveEventStructure, NegationOperator
+from OPEN_CEP.base.Pattern import Pattern
 import random
-from plan.negation.NegationAlgorithmTypes import NegationAlgorithmTypes
+from OPEN_CEP.plan.negation.NegationAlgorithmTypes import NegationAlgorithmTypes
 
-from adaptive.optimizer.OptimizerFactory import OptimizerParameters
-from adaptive.optimizer.OptimizerTypes import OptimizerTypes
-from plan.multi.MultiPatternTreePlanMergeApproaches import MultiPatternTreePlanMergeApproaches
+from OPEN_CEP.adaptive.optimizer.OptimizerFactory import OptimizerParameters
+from OPEN_CEP.adaptive.optimizer.OptimizerTypes import OptimizerTypes
+from OPEN_CEP.plan.multi.MultiPatternTreePlanMergeApproaches import MultiPatternTreePlanMergeApproaches
 
 from datetime import timedelta
 import csv

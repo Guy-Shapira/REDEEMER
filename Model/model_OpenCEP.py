@@ -54,7 +54,7 @@ from shutil import copyfile
 import datetime
 from difflib import SequenceMatcher
 import pandas as pd
-from stream.FileStream import FileInputStream, FileOutputStream
+from OPEN_CEP.stream.FileStream import FileInputStream, FileOutputStream
 from sklearn.neighbors import KNeighborsClassifier as KNN
 import wandb
 import json
