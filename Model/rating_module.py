@@ -31,11 +31,6 @@ SPLIT_1 = 3500
 SPLIT_2 = 8500
 SPLIT_3 = 10500
 
-count_fucks = 0
-
-# SPLIT_1 = 3900
-# SPLIT_2 = 8000
-# SPLIT_3 = 8200
 
 def df_to_tensor(df, float_flag=False):
     if not float_flag:
@@ -98,31 +93,22 @@ class ratingPredictor(nn.Module):
 
         weights = torch.ones(MAX_RATING)
 
-        # weights[0] = 0.5
-        # weights[1] = 0.5
-        # weights[2] = 0.5
-        # weights[20:30] = torch.tensor([2] * 10)
-        # weights[-10:] = torch.tensor([3] * 10)
         weights = weights.cuda()
         self.weights = weights
         self.criterion = nn.CrossEntropyLoss(weight=weights)
         train = data_utils.TensorDataset(self.rating_df_train, self.ratings_col_train)
         self.train_loader = data_utils.DataLoader(train, batch_size=256)
-        # self.train_loader = data_utils.DataLoader(train, batch_size=64)
         test = data_utils.TensorDataset(self.rating_df_test, self.ratings_col_test)
         self.test_loader = data_utils.DataLoader(test, batch_size=512)
-        # self.test_loader = data_utils.DataLoader(test, batch_size=64)
         self.softmax = nn.Softmax(dim=1)
         self.lr = 5e-4
         self.extra_ratings = [[] for _ in range(0, MAX_RATING)]
 
-        # self._fix_data_balance(first=True)
         self.count = 0
         self.df_knn_rating = []
         self.num_examples_given = len(self.ratings_col_train)
 
     def get_num_examples(self):
-        # return len(self.ratings_col_train)
         return self.num_examples_given
 
 
@@ -152,18 +138,11 @@ class ratingPredictor(nn.Module):
         else:
             for data, str_pattern, events, knn_rating in zip(values, np.array(self.unlabeld_strs)[sampled_indexes], np.array(self.unlabeld_events)[sampled_indexes], knn_ratings):
                 _, res = torch.max(self.predict(data.unsqueeze(0)), dim=1)
-                # res = res.item() + 1
                 res = res.item()
-                # print(f"current prediction: {res}")
-                # print(events)
-                # print(str_pattern)
                 user_rating = None
                 while user_rating is None:
-                    # user_rating = input("enter rating ")
-                    # print(f"knn rating: {knn_rating}")
                     try:
                         user_rating = knn_rating
-                        # user_rating = int(user_rating)
                     except ValueError:
                         user_rating = int(input("retry: enter rating "))
                 user_ratings.append(user_rating)
@@ -180,7 +159,6 @@ class ratingPredictor(nn.Module):
 
     def forward(self, data):
         data = data.cuda()
-        # print(data.shape)model_based_rating)
         data = self.linear_layer(data)
         data = self.dropout(data)
         data = F.relu(data, inplace=False).cuda()
@@ -201,8 +179,6 @@ class ratingPredictor(nn.Module):
             if self.rating_df_unlabeld is None:
                 self.rating_df_unlabeld = torch.tensor(data.clone().detach())
             else:
-                # print(self.rating_df_unlabeld)
-                # print(data)
                 self.rating_df_unlabeld = torch.cat([self.rating_df_unlabeld, data]).clone().detach()
 
             if not knn_rating is None:
@@ -210,8 +186,6 @@ class ratingPredictor(nn.Module):
             try:
                 self.unlabeld_strs.append(data_str)
             except Exception as e:
-                # print(type(self.unlabeld_strs))
-                # print(self.unlabeld_strs)
                 raise e
 
             self.unlabeld_events.append(events)
@@ -245,11 +219,6 @@ class ratingPredictor(nn.Module):
                     for i, mistake in enumerate(mistakes):
                         if mistake:
                             add_value = 1.0
-                            diff_val = abs(max_val[i].item() - target[i])
-                            if diff_val <= 7:
-                                add_value = 0.25
-                            elif diff_val <= 15:
-                                add_value = 0.5
                             mistake_histogram[target[i]] += add_value
                     for tar in target:
                         lens_array[tar] += 1
@@ -303,17 +272,9 @@ class ratingPredictor(nn.Module):
                 for i, mistake in enumerate(mistakes):
                     if mistake:
                         add_value = 1.0
-                        diff_val = abs(max_val[i].item() -target[i])
-                        if diff_val <= 10:
-                            add_value = 0.25
-                        elif diff_val <= 15:
-                            add_value = 0.5
-                        elif diff_val < 20:
-                            add_value = 0.75
                         mistake_histogram[target[i]] += add_value
                 for tar in target:
                     lens_array[tar] += 1
-            # distance += torch.mean(abs(max_val - target).float())
             distance += l1_loss(max_val.float(), target.float()).requires_grad_(True)
             count_all += len(input_x)
 
@@ -406,13 +367,6 @@ class ratingPredictor(nn.Module):
             pmax = pmax.detach().numpy()
             self.unlabeld_strs = np.array(self.unlabeld_strs)[pidx.astype(int)].tolist()
 
-            # if count % 5 == 0:
-            #     plt.plot(pmax[pidx], color = colors[int(count/5)])
-            #     plt.legend([str(i) for i in range(0, count +1, 5)], loc ="lower right")
-            #     plt.savefig(f"look.pdf")
-            #     plt.show()
-            # if new_acc > 0.55:
-            #     self.add_pseudo_labels(pmax_indexes)
 
 
         if count < max_count:
@@ -533,9 +487,6 @@ class ratingPredictor(nn.Module):
         new_split_samples = _over_sampeling(flatten, split_samples)
         if not new_split_samples is None:
             split_samples = new_split_samples
-        # new_split_samples = _under_sampeling(split_samples)
-        # if not new_split_samples is None:
-        #     split_samples = new_split_samples
         lens_array = np.array([len(i) for i in split_samples])
 
         print(lens_array)
@@ -565,12 +516,10 @@ def rating_main(model, events, all_conds, actions, str_pattern, rating_flag, epo
             if len(events) == 1:
                 return model_rating - 0.5, norm_rating
             else:
-                # return (model_rating + 0.1 * len(events)) * (1.05 ** (epoch + 1)), norm_rating
-                return (model_rating + 0.3 * len(events)), norm_rating
+                return model_rating, norm_rating
         else:
             return knn_based_rating(model, events, str_pattern, actions, flat_flag, noise_flag)
     else:
-        # return 1, 1 # GPU first test
         return other_rating(model, events, all_conds, actions, str_pattern)
 
 
@@ -598,8 +547,6 @@ def knn_based_rating(model, events, str_pattern, actions, flat_flag=False, noise
                 predict_pattern = pd.concat([predict_pattern, to_add], axis=1).reset_index(drop=True)
         rating = model.knn.predict(predict_pattern).item()
     except Exception as e:
-        # print(e)
-        # exit()
         rating = model.knn_avg
     if len(events) == 1:
         rating *= 2
@@ -644,18 +591,13 @@ def other_rating(model, events, all_conds, actions, str_pattern):
         unique, app_count = np.unique(events, return_counts=True)
         for k in range(len(unique)):
             rating += math.pow(0.7, k + 1) * app_count[k] * 1.3
-        # if "finish" in events:
-        #     rating += 0.5
         if len(str_pattern) < 2:
             rating /= 5
 
     if len(events) == 1:
         rating *= 0.8
-    # if len(events) > 2 and len(unique) == 1:
-    #     rating *= 0.5
     if len(events) >= 3:
         rating *= 1.25
-    # rating -= 2
     return rating, rating
 
 def model_based_rating(model, events, all_conds, str_pattern, actions, flat_flag=False, noise_flag=False):
@@ -682,21 +624,14 @@ def model_based_rating(model, events, all_conds, str_pattern, actions, flat_flag
                     predict_pattern = pd.concat([predict_pattern, to_add], axis=1).reset_index(drop=True)
 
             start_time = timeit.default_timer()
-            # print(str_pattern)
             knn_rating, _ = knn_based_rating(model, events, str_pattern, actions, flat_flag, noise_flag)
 
             knn_time = timeit.default_timer() - start_time
             start_time = timeit.default_timer()
             rating = float(model.pred_pattern.get_prediction(df_to_tensor(predict_pattern), str_pattern, events, knn_rating=knn_rating))
             model_time = timeit.default_timer() - start_time
-            # print(f"\nKNN time: {knn_time} Model time: {model_time}, Total time: {knn_time + model_time}\n")
 
         except Exception as e:
-            # raise e
-            global count_fucks
-            count_fucks += 1
-            if count_fucks % 10 == 0:
-                print(f"Fucks = {count_fucks}\n")
             rating, _ = other_rating(model, events, all_conds, actions, str_pattern)
 
     rating += 1

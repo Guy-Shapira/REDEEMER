@@ -154,16 +154,6 @@ with torch.autograd.set_detect_anomaly(True):
 
             self.embedding_actions = nn.Embedding(self.num_actions + 1, 1)
             self.embedding_desicions = nn.Embedding(self.num_events + 1, 1)
-            # self.actor_critic = ActorCriticModel(
-            #                     num_events=self.num_events,
-            #                     match_max_size=self.match_max_size,
-            #                     window_size=self.window_size,
-            #                     num_cols=self.num_cols,
-            #                     hidden_size1=self.hidden_size1,
-            #                     hidden_size2=self.hidden_size2,
-            #                     embeddding_total_size=EMBDEDDING_TOTAL_SIZE,
-            #                     num_actions=self.num_actions_in_use
-            #                     )
 
             self._create_training_dir(data_path)
             print("finished training dir creation!")
@@ -278,20 +268,12 @@ with torch.autograd.set_detect_anomaly(True):
             self.pred_sched = StepLR(self.pred_optim, step_size=2000, gamma=0.85)
             test_pred.df_knn_rating = []
 
-            # TODO: add conditions to load no/semi/full knowledge!
-            # TODO: must un-comment!
-
             if self.run_mode == "no":
                 self.certainty = test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=0, max_total_count=0, n=0)
                 test_pred.num_examples_given = 0
             elif self.run_mode == "semi":
-                # test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=7, max_total_count=100, n=0)
-                # if not os.path.exists(f"Processed_knn/{self.pattern_path}/rating_model.pt"):
-                    # print("WFDJKFDJKLDJKLJKDJKLFS\n")
-                    # pass
-                if True:
-                    # test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=10, max_total_count=100, n=10)
-                    test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=3, max_total_count=50, n=10)
+                if not os.path.exists(f"Processed_knn/{self.pattern_path}/rating_model.pt"):
+                    test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=10, max_total_count=100, n=10)
                     torch.save(test_pred, f"Processed_knn/{self.pattern_path}/rating_model.pt")
                 else:
                     print("Loaded pattern rating model! \n")
@@ -445,7 +427,6 @@ with torch.autograd.set_detect_anomaly(True):
                 numpy_probs += ucb_factor
 
                 numpy_probs = numpy_probs / np.sum(numpy_probs)
-                # print(numpy_probs)
                 action = np.random.multinomial(
                     n=1, pvals=numpy_probs, size=1
                 )
@@ -455,11 +436,6 @@ with torch.autograd.set_detect_anomaly(True):
             self.count_events += 10
             self.action_counter[action] += 10
 
-            # print(action)
-            # print("\n")
-            # input("what")
-            # print(action)
-            # input("sayt ")
             return action, org_action
 
 
@@ -599,14 +575,6 @@ with torch.autograd.set_detect_anomaly(True):
 
                         action, org_action  = model.get_action(data, in_round_count, training_factor=training_factor)
                         count += 1
-                        # value_rating = value_rating.detach().cpu().numpy()[0]
-                        # value_reward = value_reward.detach().cpu().numpy()[0]
-                        # values_rating.append(value_rating)
-                        # values_reward.append(value_reward)
-                        # entropy_term += entropy
-                        # print(action)
-                        # print(type(action))
-                        # print(dir(action))
                         actions_ddpg.append(org_action)
                         states_ddpg.append(data)
 
@@ -689,7 +657,7 @@ with torch.autograd.set_detect_anomaly(True):
                             content = f.read()
                     except Exception as e:
                         print(e)
-                        # Probably becasue of not finished pattern case
+                        # Because of not finished pattern case
                         content = None
 
                     for pattern_index, pattern_rating in enumerate(ratings):
@@ -744,17 +712,10 @@ with torch.autograd.set_detect_anomaly(True):
 
                     except Exception as e:
                         print(e)
-                        # raise e
                         if not finished_flag:
                             continue
                         else:
                             rewards = [pattern_rating * real_rew for pattern_rating, real_rew in zip(ratings, real_rewards)]
-
-
-
-                    # _, Qval_reward, Qval_rating = model.forward(data, training_factor=training_factor)
-                    # Qval_rating = Qval_rating.detach().cpu().numpy()[0]
-                    # Qval_reward = Qval_reward.detach().cpu().numpy()[0]
 
                     del data
                     gc.collect()
@@ -771,20 +732,12 @@ with torch.autograd.set_detect_anomaly(True):
 
 
                     index_max = np.argmax(rewards)
-                    # if total_steps_trained > 4500 and real_rewards[index_max] <= 0:
-                    #     continue
-
-
-                    # else:
                     recent_ratings.append(ratings)
                     for sts, act, rew in zip(states_ddpg, actions_ddpg, rewards):
                         memory.push(sts, act, rew, sts)
                     recent_rewards.append(real_rewards)
-                    # recent_logs.append(log_probs)
                     recent_values_ratings.append(values_rating)
                     recent_values_rewards.append(values_reward)
-                    # recent_Qval_ratings.append(Qval_rating)
-                    # recent_Qval_rewards.append(Qval_reward)
 
                     if len(recent_ratings) >= mini_batch_size:
                         mem_size = len(memory)
@@ -830,7 +783,7 @@ with torch.autograd.set_detect_anomaly(True):
                             )
                         )
 
-                        if (real_rewards[index_max] > 2 or random.randint(0,3) > 1) or (ratings[index_max] > 2 or random.randint(0,3) > 1):
+                        if 1:
                             num_examples_given = model.pred_pattern.get_num_examples()
                             if not actor_loss is None:
                                 wandb.log({"reward": real_rewards[index_max], "rating": ratings[index_max],
@@ -848,11 +801,6 @@ with torch.autograd.set_detect_anomaly(True):
                                         "num_examples": num_examples_given,
                                         "training_factor": training_factor})
 
-                        # if total_steps_trained > 4500:
-                        #     # Only for sweeps!
-                        #     return None, None
-
-
                         str_pattern = create_pattern_str(events[:index_max + 1], actions[:index_max + 1],
                         comp_values[:index_max + 1], all_conds[:index_max + 1], model.cols, all_comps[:index_max + 1])
                         sys.stdout.write(f"Pattern: events = {events[:index_max + 1]}, conditions = {str_pattern} index = {index}\n")
@@ -868,9 +816,7 @@ with torch.autograd.set_detect_anomaly(True):
                         sys.stdout.write(f"\n--- Current count {model.count} ---\n")
 
                     config.update({"total_number_of_steps" : total_steps_trained}, allow_val_change=True)
-                    #TODO: hyper-param, need to find proper value
                     if model.count > 50:
-                        print("\n\n\n---- Stopping early because of low log ----\n\n\n")
                         model.count = 0
                         for g1, g2 in zip(model.actor_optimizer.param_groups, model.critic_optimizer.param_groups):
                             g1['lr'] *= 0.85
@@ -893,55 +839,6 @@ with torch.autograd.set_detect_anomaly(True):
                     np.mean(real[t : t + GRAPH_VALUE])
                     for t in range(0, len(real), GRAPH_VALUE)
                 ]
-                # for rew, rat, max_rat in zip(real_groups[-int(bs / GRAPH_VALUE):], rating_groups[-int(bs / GRAPH_VALUE):], max_ratings_group[-int(bs / GRAPH_VALUE):]):
-                #     wandb.log({"reward": rew, "rating": rat, "max rating": max_rat})
-
-                # for sweeps on newton
-                if 0:
-                    fig, (ax1, ax2) = plt.subplots(2, constrained_layout=True)
-
-                    ax1.set_xlabel("Episode")
-                    ax1.set_title("Reward vs number of episodes played")
-                    labels = [
-                        "{}-{}".format(t, t + GRAPH_VALUE)
-                        for t in range(0, len(real), GRAPH_VALUE)
-                    ]
-                    locations = [
-                        t + int(GRAPH_VALUE / 2) for t in range(0, len(real), GRAPH_VALUE)
-                    ]
-                    plt.sca(ax1)
-                    plt.xticks(locations, labels)
-
-                    ax1.scatter(locations, real_groups, c="g")
-                    ax1.set_ylabel("Avg Matches per window")
-
-                    ax1.plot()
-
-                    locations = [
-                        t + int(GRAPH_VALUE / 2) for t in range(0, len(rating_plot), GRAPH_VALUE)
-                    ]
-                    ax2.set_ylabel("Avg Rating per window")
-                    ax2.set_xlabel("Episode")
-                    ax2.set_title("Rating vs number of episodes played")
-                    plt.sca(ax2)
-                    plt.xticks(locations, labels)
-
-                    ax2.scatter(locations, rating_groups, c="g")
-                    ax2.scatter(locations, max_ratings_group, c="r")
-                    ax2.plot()
-                    str_split_factor = str(split_factor * 100) + "%"
-                    if not os.path.exists(f"Graphs/{str_split_factor}/"):
-                        os.mkdir(f"Graphs/{str_split_factor}/")
-                    plt.savefig(f"Graphs/{str_split_factor}/{str(len(real))}_{model.window_size}.pdf")
-                    plt.show()
-
-                factor_results.append({"rating" : rating_groups[-1], "reward": real_groups[-1]})
-
-                if False:
-                    after_epoch_test(best_pattern)
-                    with open("Data/Matches/allMatches.txt", "r") as f:
-                        results.append(int(f.read().count("\n") / (max_len_best + 1)))
-                    os.remove("Data/Matches/allMatches.txt")
 
 
             mean_result_out, out_sample_acc  = run_test(model, load_flag=False, avg_score=np.mean(real), rating_flag=rating_flag, pred_flag=pred_flag)
@@ -998,7 +895,6 @@ with torch.autograd.set_detect_anomaly(True):
 
 
     def run_test(model, name="", load_flag=False, avg_score=0.0, rating_flag=False, pred_flag=False):
-        #TODO: convert to pattern form!
         prefix_path = "Model/Weights"
         if load_flag:
             # model.load(prefix_path + "/Model/" + name + ".pt")
@@ -1121,8 +1017,6 @@ with torch.autograd.set_detect_anomaly(True):
             train(pretrain_inst, num_epochs=4, bs=75, mini_batch_size=args.mbs, split_factor=0.5, rating_flag=True, run_name="gain_knowledge_model", pretrain_flag=True, wandb_name=args.wandb_name)
             #copy rating model to trainable model
 
-            #TODO: check if there is a problem in here?
-            #TODO: double pre training, do this twich and see if this achievs something
             class_inst.certainty = pretrain_inst.certainty
             class_inst.pred_pattern = pretrain_inst.pred_pattern
             class_inst.knn = pretrain_inst.knn
@@ -1133,25 +1027,22 @@ with torch.autograd.set_detect_anomaly(True):
         all_patterns.append(patterns)
         cuda_handle.empty_cache()
         # print(patterns)
-        # results.update({split_factor: result})
-        # suggested_models.append({split_factor: class_inst})
+        results.update({split_factor: result})
+        suggested_models.append({split_factor: class_inst})
 
 
-        # if 0:
-        #     print(results)
-        #     pareto_results = np.array(list(results.values()))
-        #     pareto_results = np.array([np.array(list(res.values())) for res in pareto_results])
-        #     print(pareto_results)
-        #     patero_results = is_pareto_efficient(pareto_results)
-        #     good_patterns = []
-        #     for patero_res, model, patterns in zip(patero_results, suggested_models, all_patterns):
-        #         if patero_res:
-        #             print(model)
-        #             good_patterns.extend(list(patterns))
-        #             print(patterns)
-
-
-        #     run_OpenCEP(events=args.final_data_path, patterns=good_patterns, test_name="secondLevel27April")
+        if 1:
+            print(results)
+            pareto_results = np.array(list(results.values()))
+            pareto_results = np.array([np.array(list(res.values())) for res in pareto_results])
+            print(pareto_results)
+            patero_results = is_pareto_efficient(pareto_results)
+            good_patterns = []
+            for patero_res, model, patterns in zip(patero_results, suggested_models, all_patterns):
+                if patero_res:
+                    print(model)
+                    good_patterns.extend(list(patterns))
+                    print(patterns)
 
         return
 

@@ -103,12 +103,8 @@ class Actor(ModelBase):
             except Exception as e:
                 print(e)
                 print("anomaly- extreamly large value!")
-                #TODO: raise a unique error- to end training! - Done
                 raise OverFlowError(vec, mask, T)
-                # base_array = torch.zeros_like(masked_exps).to(masked_exps.device)
-                # max_index = torch.argmax(masked_exps).item()
-                # base_array[max_index] = 1.0
-                # return base_array
+
 
             return (masked_exps/masked_sums)
 
@@ -118,9 +114,7 @@ class Actor(ModelBase):
 
         if not softmax_flag:
             return base_output, None
-            # event_after_softmax = event_before_softmax
         else:
-            # event_after_softmax = masked_softmax(event_before_softmax, mask.clone(), dim=0, T=T)
             m = nn.Softmax(dim=0).to(event_before_softmax.device)
             event_after_softmax = m(event_before_softmax)
             return base_output, event_after_softmax
@@ -150,9 +144,7 @@ class Actor(ModelBase):
 
             ucb_factor = np.array([sqrt((2 * log(count_comparisons))/ (action_counter[i])) for i, _ in enumerate(numpy_probs)])
 
-            # ucb_factor = np.array([sqrt((2 * log(action_counter))/ (count_comparisons[i])) for i, _ in enumerate(numpy_probs)])
             ucb_factor = ucb_factor / np.sum(ucb_factor)
-            # numpy_probs = np.array([prob + sqrt((2 * log(self.count_events))/ (self.event_counter[i])) for i, prob in enumerate(numpy_probs)])
             numpy_probs += ucb_factor
 
             numpy_probs = numpy_probs / np.sum(numpy_probs)
@@ -162,12 +154,6 @@ class Actor(ModelBase):
         )
         highest_prob_action = np.argmax(highest_prob_action)
 
-        # if np.random.rand() > 1 - training_factor:
-        #     highest_prob_action = np.random.randint(len(probs))
-        # else:
-        #     highest_prob_action = np.random.choice(
-        #         self.num_actions, p=np.squeeze(numpy_probs)
-        #     )
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action]).cpu()
 
         return highest_prob_action, log_prob, entropy
