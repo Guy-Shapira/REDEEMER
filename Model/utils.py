@@ -427,7 +427,6 @@ def mapping_for_baseline(action, events, number_of_event, number_of_actions_in_e
     conditions, comparisons, operators, comps_val = [], [], [], []
     eff_sepration = [i for i in speration_points if i < conditions_represention]
     eff_sepration.reverse()
-    #TODO: ADD Nope!!!
     while len(eff_sepration) > 0:
         # print(conditions_represention)
         conditions.append(all_actions[conditions_represention % len(all_actions)])
