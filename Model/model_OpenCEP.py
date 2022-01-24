@@ -280,21 +280,16 @@ with torch.autograd.set_detect_anomaly(True):
             self.pred_sched = StepLR(self.pred_optim, step_size=2000, gamma=0.85)
             test_pred.df_knn_rating = []
 
-            # TODO: add conditions to load no/semi/full knowledge!
-            # TODO: must un-comment!
             if self.run_mode == "no":
                 self.certainty = test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=0, max_total_count=0, n=0)
                 test_pred.num_examples_given = 0
             elif self.run_mode == "semi":
-                # test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=7, max_total_count=100, n=0)
-                test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=1, max_total_count=10, n=0)
-                # if not os.path.exists(f"Processed_knn/{self.pattern_path}/rating_model.pt"):
-                #     # pass
-                #     test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=10, max_total_count=100, n=10)
-                #     # torch.save(test_pred, f"Processed_knn/{self.pattern_path}/rating_model.pt")
-                # else:
-                #     print("Loaded pattern rating model! \n")
-                #     test_pred = torch.load(f"Processed_knn/{self.pattern_path}/rating_model.pt")
+                if not os.path.exists(f"Processed_knn/{self.pattern_path}/rating_model.pt"):
+                    test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=10, max_total_count=100, n=10)
+                    torch.save(test_pred, f"Processed_knn/{self.pattern_path}/rating_model.pt")
+                else:
+                    print("Loaded pattern rating model! \n")
+                    test_pred = torch.load(f"Processed_knn/{self.pattern_path}/rating_model.pt")
                 test_pred.num_examples_given = 3500
                 self.certainty = test_pred._train(self.pred_optim, self.pred_sched, count=0, max_count=0, max_total_count=0, n=0)
 
@@ -564,10 +559,10 @@ with torch.autograd.set_detect_anomaly(True):
                 conds.append(cond)
                 comps_to.append(comp_to)
                 if len(mini_action.split("value")) > 1:
-                    mini_action = mini_action.replace("value", "")  # TODO:replace this shit
-                    compl_vals.append(value)  # TODO: change
+                    mini_action = mini_action.replace("value", "")
+                    compl_vals.append(value)
                 else:
-                    compl_vals.append("nop")  # TODO: change
+                    compl_vals.append("nop")
                 mini_actions.append(mini_action)
                 log_probs += log / self.num_cols
             return mini_actions, log_probs, compl_vals, conds, mini_actions_vals, total_entropy, comps_to, value_reward, value_rating
@@ -756,13 +751,11 @@ with torch.autograd.set_detect_anomaly(True):
         max_rating = []
         entropy_term =  0
 
-        #TODO: change this to be diffent in gain_knowledge and train_model
         training_factor = 0.8
         pbar_file = sys.stdout
         total_count = 0
         count_actor = 0
         count_critic = 0
-        # not_finished_strs = []
 
         recent_ratings, recent_rewards, recent_logs = [], [], []
         recent_values_ratings, recent_values_rewards = [], []
@@ -811,23 +804,8 @@ with torch.autograd.set_detect_anomaly(True):
                             n = 75
                             if model.run_mode == "semi":
                                 n = 50
-                            # else:
-                            #     n = 50
 
-                            #TODO: check why this is almost meaningless and doesn't impact training
                             model.certainty = model.pred_pattern._train(model.pred_optim, None, count=0, max_count=2, max_total_count=50, n=n, retrain=True)
-
-                            #TODO: must remove!!!!
-                            if epoch >= 3 and model.run_mode == "semi":
-                                if epoch == 3:
-                                    if in_round_count < 100:
-                                        model.certainty *= 1.02
-                                    elif in_round_count < 350:
-                                        model.certainty *= 1.04
-                                    else:
-                                        model.certainty *= 1.08
-                                else:
-                                    model.certainty *= 1.08
 
                     data = model.data[index]
                     data_size = len(data)
@@ -879,17 +857,12 @@ with torch.autograd.set_detect_anomaly(True):
                         action = 1
                         if action == model.num_events:
                             ratings.append(1)
-                            # print("this shit happend\n\n")
                             log_probs.append(log_prob)
 
                             if len(actions) == 0:
-                                # rewards.append(-1.5)
-                                # real_rewards.append(-1.5)
                                 special_reward.append(-1.5)
                                 break
                             else:
-                                # rewards.append(10)
-                                # real_rewards.append(10)
                                 special_reward.append(10)
                                 break
                         else:
@@ -946,11 +919,7 @@ with torch.autograd.set_detect_anomaly(True):
                             patterns.append(pattern)
                             str_pattern = create_pattern_str(events, actions, comp_values, all_conds, model.cols, all_comps)
 
-                            #TODO: add conditions to allow no/semi/full knoweldge runs!
                             rating, norm_rating = rating_main(model, events, all_conds, actions, str_pattern, rating_flag, epoch, pred_flag=pred_flag, noise_flag=model.noise_flag)
-
-                            #TODO: remove, added for sacle factor testing
-                            # rating /= 5
 
                             ratings.append(rating)
                             normalize_rating.append(norm_rating)
@@ -962,19 +931,12 @@ with torch.autograd.set_detect_anomaly(True):
                     # after loop ended- calc reward for all patterns and update policy
                     try:
                         run_exp_name = model.exp_name
-                        # print(run_exp_name)
-                        # print(patterns)
                         run_OpenCEP(exp_name=run_exp_name, test_name=index, patterns=patterns)
-                        # run_OpenCEP(exp_name="Football", test_name=index, patterns=patterns)
                     except Exception as e:
                         raise(e)
                         # timeout error
                         finished_flag = False
                         not_finished_count += 1
-
-                    # if finished_flag:
-                        # print("Got here\n")
-                        # input("wait!")
                     content = None
                     try:
                         with open("Data/Matches/{}Matches.txt".format(index), "r") as f:
@@ -982,7 +944,7 @@ with torch.autograd.set_detect_anomaly(True):
                     except Exception as e:
                         print(e)
                         # raise e
-                        # Probably becasue of not finished pattern case
+                        # becasue of not finished pattern case (max time for pattern matches)
                         content = None
 
                     for pattern_index, pattern_rating in enumerate(ratings):
@@ -1000,18 +962,12 @@ with torch.autograd.set_detect_anomaly(True):
                                 normalize_reward.append(reward - 20)
                                 is_done = True
                             else:
-                                # print("Finished\n")
                                 original_reward = int(content.count(f"{pattern_index}: "))
                                 reward = original_reward
-                                # print(f"Reward pre store = {reward}")
-                                # input("wait")
 
                                 if reward >= model.max_fine_app:
                                     reward = max(0, 2 * model.max_fine_app - reward)
                                 real_rewards.append(reward)
-                                # print(real_rewards)
-                                # input("wait")
-
                                 normalize_reward.append(reward - 20)
 
                     try:
@@ -1023,8 +979,6 @@ with torch.autograd.set_detect_anomaly(True):
                                 sp_rew = special_reward[pattern_index]
                                 if sp_rew is None:
                                     reward = real_rewards[pattern_index] * 0.75 + near_windows_rewards[pattern_index] * 0.25
-                                    # print(f"Reward = {reward}")
-                                    # input("wait")
                                     actuall_rating, _ = rating_main(model, events, all_conds, actions, str_pattern, rating_flag, epoch, pred_flag=False, noise_flag=model.noise_flag)
                                     actuall_best_found_reward = reward * actuall_rating
 
@@ -1134,11 +1088,6 @@ with torch.autograd.set_detect_anomaly(True):
                                             "num_examples": num_examples_given,
                                             "training_factor": training_factor})
 
-                            # if total_steps_trained > 4500:
-                            #     # Only for sweeps!
-                            #     return None, None
-
-
                             str_pattern = create_pattern_str(events[:index_max + 1], actions[:index_max + 1],
                             comp_values[:index_max + 1], all_conds[:index_max + 1], model.cols, all_comps[:index_max + 1])
                             sys.stdout.write(f"Pattern: events = {events[:index_max + 1]}, conditions = {str_pattern} index = {index}\n")
@@ -1163,9 +1112,7 @@ with torch.autograd.set_detect_anomaly(True):
                             for g1, g2 in zip(model.actor_optimizer.param_groups, model.critic_optimizer.param_groups):
                                 g1['lr'] *= 0.85
                                 g2['lr'] *= 0.85
-                            # continue
                             training_factor = 0.6
-                            # break
 
 
 
@@ -1244,7 +1191,6 @@ with torch.autograd.set_detect_anomaly(True):
             new_res = dict_res['rating'] / 10 + dict_res['reward'] / model.max_fine_app
             if new_res > best_res:
                 best_res = new_res
-        # return best_res
 
 
         timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -1286,7 +1232,6 @@ with torch.autograd.set_detect_anomaly(True):
 
 
     def run_test(model, name="", load_flag=False, avg_score=0.0, rating_flag=False, pred_flag=False):
-        #TODO: convert to pattern form!
         prefix_path = "Model/Weights"
         if load_flag:
             # model.load(prefix_path + "/Model/" + name + ".pt")
@@ -1413,13 +1358,10 @@ with torch.autograd.set_detect_anomaly(True):
             train(pretrain_inst, num_epochs=4, bs=75, mini_batch_size=args.mbs, split_factor=0.5, rating_flag=True, run_name="gain_knowledge_model", pretrain_flag=True, wandb_name=args.wandb_name)
             #copy rating model to trainable model
 
-            #TODO: check if there is a problem in here?
-            #TODO: double pre training, do this twich and see if this achievs something
             class_inst.certainty = pretrain_inst.certainty
             class_inst.pred_pattern = pretrain_inst.pred_pattern
             class_inst.knn = pretrain_inst.knn
             class_inst.list_of_dfs = pretrain_inst.list_of_dfs
-        # train working model
         result, patterns = train(class_inst, num_epochs=args.epochs, bs=args.bs, mini_batch_size=args.mbs, split_factor=args.split_factor, rating_flag=rating_flag, run_name="train_model", pretrain_flag=False, wandb_name=args.wandb_name)
 
         all_patterns.append(patterns)
@@ -1501,19 +1443,6 @@ if __name__ == "__main__":
             "FB Memory Usage Used GPU_3,Power Samples Max GPU_3,Power Samples Avg GPU_3,"\
             "FB Memory Usage Used GPU_4,Power Samples Max GPU_4,Power Samples Avg GPU_4",
             type=str, help="all cols in data")
-
-
-    # parser.add_argument('--data_path', default='StarPilot/GamesExp/', help='path to data log')
-    #
-    # parser.add_argument('--events_path', default='StarPilot/EventsExp', help='path to list of events')
-    #
-    #
-    # parser.add_argument('--pattern_path', default='Patterns/pattern28_50_ratings.csv', help='path to known patterns')
-    # parser.add_argument('--final_data_path', default='store_folder/xaa', help='path to next level data')
-    # parser.add_argument('--max_vals', default = "50, 50, 50, 50, 5", type=str, help="max values in columns")
-    # parser.add_argument('--norm_vals', default = "0, 0, 0, 0, 0", type=str, help="normalization values in columns")
-    # parser.add_argument('--all_cols', default = 'x, y, vx, vy, health', type=str, help="all cols in data")
-    # parser.add_argument('--eff_cols', default = 'x, y, vx, vy', type=str, help="cols to use in model")
     parser.add_argument('--early_knowledge', dest='early_knowledge',
                 type=lambda x: bool(strtobool(x)),
                 default = True, help="indication if expert knowledge is available")
