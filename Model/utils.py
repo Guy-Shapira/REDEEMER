@@ -657,7 +657,7 @@ def set_values_bayesian(comp_vals, cols, eff_cols, mini_actions, event, conds, f
     event_name = DEFAULT_TESTING_DATA_FORMATTER.get_ticker_event_name()
     keep_cols = [event_name] + eff_cols
     df = df[keep_cols]
-    df = df.loc[df[event_name] == event] # todo, try to remove
+    df = df.loc[df[event_name] == event]
     count = 0
     for col_count, (val, col) in enumerate(zip(comp_vals, df.columns[1:])):
         if not val == "nop":
@@ -869,7 +869,6 @@ class DDPG(object):
         self.action_space = action_space
 
         # Define the actor
-        # device = "cuda:7"
         self.actor = Actor_d(hidden_size, num_inputs, self.action_space).cuda()
         self.actor_target = Actor_d(hidden_size, num_inputs, self.action_space).cuda()
 
@@ -906,7 +905,6 @@ class DDPG(object):
                             Used to evaluate the action.
             action_noise:   If not None, the noise to apply on the evaluated action
         """
-        # device = "cuda:7"
 
         x = state.cuda()
 
@@ -920,9 +918,6 @@ class DDPG(object):
         if action_noise is not None:
             noise = torch.Tensor(action_noise.noise()).cuda()
             mu += noise
-
-        # # Clip the output according to the action space of the env
-        # mu = mu.clamp(self.action_space.low[0], self.action_space.high[0])
 
         return mu
 
@@ -939,7 +934,6 @@ class DDPG(object):
             batch:  Batch to perform the training of the parameters
         """
         # Get tensors from the batch
-        # device = "cuda:7"
 
         state_batch = torch.cat(batch.state).cuda()
         action_batch = torch.cat(batch.action).cuda()
@@ -947,8 +941,6 @@ class DDPG(object):
         next_state_batch = torch.cat(batch.next_state).cuda()
 
         # Get the actions and the state values to compute the targets
-        # print(next_state_batch)
-        # print(next_state_batch.shape)
         next_action_batch = self.actor_target(next_state_batch)
         next_state_action_values = self.critic_target(next_state_batch, next_action_batch.detach())
 
@@ -956,15 +948,11 @@ class DDPG(object):
         reward_batch = reward_batch.unsqueeze(1)
         expected_values = reward_batch + 1.0 * self.gamma * next_state_action_values
 
-        # TODO: Clipping the expected values here?
-        # expected_value = torch.clamp(expected_value, min_value, max_value)
 
         # Update the critic network
         self.critic_optimizer.zero_grad()
         state_action_batch = self.critic(state_batch, action_batch)
         value_loss = F.mse_loss(state_action_batch.float(), expected_values.detach().float())
-        # print(value_loss)
-        # print(type(value_loss)
         value_loss.backward()
         self.critic_optimizer.step()
 
@@ -1030,9 +1018,6 @@ class DDPG(object):
 
         if os.path.isfile(checkpoint_path):
             self.logger.info("Loading checkpoint...({})".format(checkpoint_path))
-            # key = 'cuda' if torch.cuda.is_available() else 'cpu'
-            key = 'cuda:7'
-            print("KEY\n")
             checkpoint = torch.load(checkpoint_path, map_location=key)
             start_timestep = checkpoint['last_timestep'] + 1
             self.actor.load_state_dict(checkpoint['actor'])
