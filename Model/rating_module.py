@@ -312,7 +312,6 @@ class ratingPredictor(nn.Module):
         self.ratings_col_train = torch.cat([self.ratings_col_train, user_ratings])
         print(user_ratings)
         print(self.unlabeld_strs[-actuall_size:])
-        input("check diff")
         self.rating_df_unlabeld = self.rating_df_unlabeld[:-actuall_size]
         self.unlabeld_strs = self.unlabeld_strs[:-actuall_size]
 
@@ -338,7 +337,6 @@ class ratingPredictor(nn.Module):
             except Exception as e:
                 print(e)
                 count_err += 1
-                print(f"num errors {count_err}")
                 raise e
             new_acc, all_outs = self.test_single_epoch(total_count)
             if new_acc <= acc:
