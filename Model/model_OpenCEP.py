@@ -1246,7 +1246,7 @@ with torch.autograd.set_detect_anomaly(True):
         all_patterns = []
         global class_inst
         args.wandb_name += f"_seed_{args.seed}"
-        if wandb_flag:
+        if args.wandb_flag:
             wandb_info = [args.wandb_project, args.wandb_user]
         else:
             wandb_info = []
