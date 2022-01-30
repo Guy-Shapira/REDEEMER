@@ -686,7 +686,6 @@ with torch.autograd.set_detect_anomaly(True):
             config.num_epochs = num_epochs
             config.split_factor = split_factor
             config.total_number_of_steps = total_steps_trained
-            config.name = wandb_name
         if model.noise_flag:
             config.mu = model.mu
             config.sigma = model.sigma
