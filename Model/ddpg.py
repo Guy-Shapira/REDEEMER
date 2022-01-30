@@ -7,9 +7,7 @@ import os
 from copy import deepcopy
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-# warnings.filterwarnings("ignore", category=UserWarning)
 from distutils.util import strtobool
-# from Model.DDGP import ddgp
 from utils_ddpg.replay_memory import ReplayMemory, Transition
 
 from Model.utils import (
@@ -440,28 +438,22 @@ with torch.autograd.set_detect_anomaly(True):
 
 
 
-    def train(model, num_epochs=5, test_epcohs=False, split_factor=0, bs=0, mini_batch_size=16, rating_flag=True, run_name=None, pretrain_flag=False, wandb_name=""):
+    def train(model, num_epochs=5, test_epcohs=False, split_factor=0, bs=0, mini_batch_size=16, rating_flag=True, run_name=None, pretrain_flag=False, wandb_flag=False, wand_info=None):
         actor_loss, critic_loss =  None, None
-        new_run_name = wandb_name
-        run_type = (run_name == 'gain_knowledge_model')
-        pred_flag = (model.run_mode != "full")
-        if run_name is None:
-            run_name = new_run_name
-        else:
-            run_name = new_run_name + "_" + run_name
         not_finished_count = 0
 
-        run = wandb.init(project='Pattern_Mining-DDPG', entity='guyshapira', name=run_name, settings=wandb.Settings(start_method='fork'))
-        config = wandb.config
-        config.hidden_size1 = model.hidden_size1
-        config.hidden_size2 = model.hidden_size2
-        config.current_epoch = 0
-        config.batch_size = bs
-        config.window_size = model.window_size
-        config.num_epochs = num_epochs
-        config.split_factor = split_factor
-        config.total_number_of_steps = total_steps_trained
-        config.name = wandb_name
+        pred_flag = (model.run_mode != "full")
+        if wandb_flag:
+            run = wandb.init(project=wand_info[0], entity=wand_info[1], name=run_name, settings=wandb.Settings(start_method='fork'))
+            config = wandb.config
+            config.hidden_size1 = model.hidden_size1
+            config.hidden_size2 = model.hidden_size2
+            config.current_epoch = 0
+            config.batch_size = bs
+            config.window_size = model.window_size
+            config.num_epochs = num_epochs
+            config.split_factor = split_factor
+            config.total_number_of_steps = total_steps_trained
         if model.noise_flag:
             config.mu = model.mu
             config.sigma = model.sigma
@@ -783,7 +775,7 @@ with torch.autograd.set_detect_anomaly(True):
                             )
                         )
 
-                        if 1:
+                        if wandb_flag:
                             num_examples_given = model.pred_pattern.get_num_examples()
                             if not actor_loss is None:
                                 wandb.log({"reward": real_rewards[index_max], "rating": ratings[index_max],
@@ -813,7 +805,6 @@ with torch.autograd.set_detect_anomaly(True):
                                 index_max + 1,
                             )
                         )
-                        sys.stdout.write(f"\n--- Current count {model.count} ---\n")
 
                     config.update({"total_number_of_steps" : total_steps_trained}, allow_val_change=True)
                     if model.count > 50:
@@ -821,9 +812,7 @@ with torch.autograd.set_detect_anomaly(True):
                         for g1, g2 in zip(model.actor_optimizer.param_groups, model.critic_optimizer.param_groups):
                             g1['lr'] *= 0.85
                             g2['lr'] *= 0.85
-                        # continue
                         training_factor = 0.6
-                        # break
 
 
 
@@ -842,11 +831,13 @@ with torch.autograd.set_detect_anomaly(True):
 
 
             mean_result_out, out_sample_acc  = run_test(model, load_flag=False, avg_score=np.mean(real), rating_flag=rating_flag, pred_flag=pred_flag)
-            wandb.log({"out_sample_acc": out_sample_acc, "out_sample_mean_reward": mean_result_out,
-                    "test_accuracy": model.certainty, "mean_result_over_best_patterns": np.mean(list(best_found.keys()))})
-            if not model.run_mode == "full":
-                wandb.log({"number_of_examples": model.pred_pattern.get_num_examples(),
-                "actuall_mean_result_over_best": np.mean(list(actuall_best_found.values()))})
+            
+            if wandb_flag:
+                wandb.log({"out_sample_acc": out_sample_acc, "out_sample_mean_reward": mean_result_out,
+                        "test_accuracy": model.certainty, "mean_result_over_best_patterns": np.mean(list(best_found.keys()))})
+                if not model.run_mode == "full":
+                    wandb.log({"number_of_examples": model.pred_pattern.get_num_examples(),
+                    "actuall_mean_result_over_best": np.mean(list(actuall_best_found.values()))})
         cuda_handle.empty_cache()
         best_res = - 10
         for dict_res in factor_results:
@@ -864,7 +855,7 @@ with torch.autograd.set_detect_anomaly(True):
 
         out_sample_acc, mean_result_out = run_test(model, load_flag=False, avg_score=np.mean(real), rating_flag=rating_flag, pred_flag=pred_flag)
 
-        if not run_type:
+        if not run_type and wandb_flag:
             wandb.run.summary["test_accuracy"] = model.certainty
             wandb.run.summary["mean_result_over_best_patterns"] = np.mean(list(best_found.keys()))
             wandb.run.summary["out_of_sample_acc"] = out_sample_acc
@@ -962,6 +953,10 @@ with torch.autograd.set_detect_anomaly(True):
         all_patterns = []
         global class_inst
         args.wandb_name += f"_seed_{args.seed}"
+        if args.wandb_flag:
+            wandb_info = [args.wandb_project, args.wandb_user]
+        else:
+            wandb_info = []
 
         class_inst = ruleMiningClass(data_path=args.data_path,
                                     pattern_path=args.pattern_path,
@@ -1014,7 +1009,7 @@ with torch.autograd.set_detect_anomaly(True):
                 noise_flag=args.noise_flag)
             print("Finished creating Knowledge model")
 
-            train(pretrain_inst, num_epochs=4, bs=75, mini_batch_size=args.mbs, split_factor=0.5, rating_flag=True, run_name="gain_knowledge_model", pretrain_flag=True, wandb_name=args.wandb_name)
+            train(pretrain_inst, num_epochs=4, bs=75, mini_batch_size=args.mbs, split_factor=0.5, rating_flag=True, run_name="gain_knowledge_model", pretrain_flag=True, wandb_flag=args.wandb_flag, wand_info=wandb_info)
             #copy rating model to trainable model
 
             class_inst.certainty = pretrain_inst.certainty
@@ -1022,7 +1017,7 @@ with torch.autograd.set_detect_anomaly(True):
             class_inst.knn = pretrain_inst.knn
             class_inst.list_of_dfs = pretrain_inst.list_of_dfs
         # train working model
-        result, patterns = train(class_inst, num_epochs=args.epochs, bs=args.bs, mini_batch_size=args.mbs, split_factor=args.split_factor, rating_flag=rating_flag, run_name="train_model", pretrain_flag=False, wandb_name=args.wandb_name)
+        result, patterns = train(class_inst, num_epochs=args.epochs, bs=args.bs, mini_batch_size=args.mbs, split_factor=args.split_factor, rating_flag=rating_flag, run_name="train_model", pretrain_flag=False, wandb_flag=args.wandb_flag, wand_info=wandb_info)
 
         all_patterns.append(patterns)
         cuda_handle.empty_cache()
@@ -1081,6 +1076,14 @@ if __name__ == "__main__":
     parser.add_argument('--noise_flag', dest='noise_flag',
                 type=lambda x: bool(strtobool(x)),
                 default = False, help="indication if expert values has noise in them")
+
+         parser.add_argument('--wandb_flag', dest='wand_flag',
+                type=lambda x: bool(strtobool(x)),
+                default = False, help="indication if run should be logged to wandb server")
+
+    parser.add_argument('--wandb_user', default="", type=str, help='wandb user name; needed if wandb_flag=True')
+    parser.add_argument('--wandb_project', default="", type=str, help='wandb project name; needed if wandb_flag=True')
+
     parser.add_argument('--sigma', default=1, type=float, help='sigma for gaussian distribution')
     parser.add_argument('--mu', default=0, type=float, help='mu for gaussian distribution')
     parser.add_argument('--seed', default=0, type=int, help='seed for all random libraries')
